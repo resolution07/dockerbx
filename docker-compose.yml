@@ -1,0 +1,20 @@
+version: '3.3'
+
+services:
+    nginx:
+      build:
+        context: ./docker/nginx
+      ports:
+        - 80:80
+      volumes:
+        - ./app:/var/www/bitrix
+        - ./docker/nginx/config/conf.d:/etc/nginx/conf.d
+        - ./docker/nginx/config/html:/usr/share/nginx/html
+        - ./docker/nginx/config/log:/var/log/nginx
+      links:
+        - php-fpm
+    php-fpm:
+      build:
+        context: ./docker/php
+      volumes:
+        - ./app:/var/www/bitrix
