@@ -8,9 +8,8 @@ services:
         - 80:80
       volumes:
         - ./app:/var/www/bitrix
-        - ./docker/nginx/config/conf.d:/etc/nginx/conf.d
-        - ./docker/nginx/config/html:/usr/share/nginx/html
-        - ./docker/nginx/config/log:/var/log/nginx
+        - ./docker/nginx/config:/etc/nginx/conf.d
+        - ./docker/nginx/log:/var/log/nginx
       links:
         - php-fpm
     php-fpm:
@@ -18,3 +17,19 @@ services:
         context: ./docker/php
       volumes:
         - ./app:/var/www/bitrix
+    mysql:
+      build:
+        context: ./docker/mysql
+      volumes:
+        - ./docker/mysql/data:/var/lib/mysql
+      depends_on:
+        - php-fpm
+      ports:
+        - 3306:3306
+      environment:
+        MYSQL_DATABASE: ${DB_DATABASE}
+        MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+        MYSQL_PASSWORD: ${DB_PASSWORD}
+        MYSQL_USER: ${DB_USERNAME}
+        #SERVICE_TAGS: dev
+        #SERVICE_NAME: mysql
