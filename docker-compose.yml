@@ -1,0 +1,80 @@
+services:
+  nginx:
+    build:
+      context: ./docker/nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./app:/var/www/html
+      - ./docker/nginx/log:/var/log/nginx
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/sites-available:/etc/nginx/sites-available:ro
+      - ./docker/nginx/sites-enabled:/etc/nginx/sites-enabled:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl
+    depends_on:
+      php-fpm:
+        condition: service_healthy
+    networks:
+      - bitrix
+
+  php-fpm:
+    build:
+      context: ./docker/php
+      dockerfile: ${PHP_VERSION:-php85}/Dockerfile
+    environment:
+      XDEBUG_ENABLED: "${XDEBUG_ENABLED:-false}"
+      XDEBUG_MODE: "${XDEBUG_MODE:-debug,develop}"
+      XDEBUG_IDEKEY: "${XDEBUG_IDEKEY:-PHPSTORM}"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./app:/var/www/html:cached
+      - ./docker/php/${PHP_VERSION:-php85}/log:/var/log/php
+      - ./docker/php/${PHP_VERSION:-php85}/www.conf:/usr/local/etc/php-fpm.d/www.conf:ro
+      - ./docker/php/${PHP_VERSION:-php85}/php.ini:/usr/local/etc/php/php.ini:ro
+      - ./docker/php/${PHP_VERSION:-php85}/conf.d:/usr/local/etc/php/conf.d:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "php-fpm -t || exit 1" ]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    networks:
+      - bitrix
+
+  redis:
+    image: redis:7-alpine
+    command: [ "redis-server", "/usr/local/etc/redis/redis.conf" ]
+    volumes:
+      - ./docker/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks:
+      - bitrix
+
+  mysql:
+    build:
+      context: ./docker/mysql
+    volumes:
+      - ./docker/mysql/data:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_USER: ${DB_USERNAME}
+    networks:
+      - bitrix
+
+volumes:
+  redis_data:
+
+networks:
+  bitrix:
+    driver: bridge

@@ -1,0 +1,9 @@
+app/*
+!app/index.php
+docker/mysql/data
+docker/php/*/log/*
+!docker/php/*/log/.gitkeep
+
+.idea
+.env
+*.log
